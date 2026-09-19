@@ -28,6 +28,13 @@ internal static class Program
 
 internal sealed class MainForm : Form
 {
+    private readonly struct BrowserTarget
+    {
+        internal BrowserTarget(IntPtr handle, string name) { Handle = handle; Name = name; }
+        internal IntPtr Handle { get; }
+        internal string Name { get; }
+    }
+
     private const int DefaultCount = 22;
     private const int MinDelayMs = 8500;
     private const int MaxDelayMs = 10000;
@@ -35,7 +42,8 @@ internal sealed class MainForm : Form
 
     private readonly NumericUpDown countBox = new();
     private readonly ComboBox sourceBox = new();
-    private readonly Label edgeStatus = new();
+    private readonly ComboBox browserBox = new();
+    private readonly Label browserStatus = new();
     private readonly Label status = new();
     private readonly Label progressLabel = new();
     private readonly ProgressBar progress = new();
@@ -44,7 +52,7 @@ internal sealed class MainForm : Form
     private Button startButton = new();
     private Button pauseButton = new();
     private Button stopButton = new();
-    private readonly System.Windows.Forms.Timer edgeTimer = new() { Interval = 1000 };
+    private readonly System.Windows.Forms.Timer browserTimer = new() { Interval = 1000 };
     private readonly HttpClient http = new() { Timeout = TimeSpan.FromSeconds(8) };
 
     private CancellationTokenSource? runCts;
@@ -92,16 +100,16 @@ internal sealed class MainForm : Form
 
         BuildUi();
         EnsureCustomFile();
-        edgeTimer.Tick += (_, _) => UpdateEdgeStatus();
-        edgeTimer.Start();
-        UpdateEdgeStatus();
+        browserTimer.Tick += (_, _) => UpdateBrowserStatus();
+        browserTimer.Start();
+        UpdateBrowserStatus();
         FormClosing += (_, _) => runCts?.Cancel();
     }
 
     private void BuildUi()
     {
         Controls.Add(MakeLabel("🔎 Search Runner", 20, 15, 400, 34, 16F, true));
-        Controls.Add(MakeLabel("Edge Search Automation", 20, 50, 400, 25, 9F, false, Color.LightSteelBlue));
+        Controls.Add(MakeLabel("Browser Search Automation", 20, 50, 400, 25, 9F, false, Color.LightSteelBlue));
         Controls.Add(new Panel { Left = Px(20), Top = Px(87), Width = Px(410), Height = 1, BackColor = Color.FromArgb(65, 72, 83) });
 
         Controls.Add(MakeLabel("執行次數", 20, 110, 90, 30));
@@ -122,8 +130,14 @@ internal sealed class MainForm : Form
         Controls.Add(openButton);
 
         Controls.Add(MakeLabel("目標瀏覽器", 20, 210, 100, 30));
-        edgeStatus.SetBounds(Px(125), Px(210), Px(280), Px(30)); edgeStatus.ForeColor = Color.White;
-        Controls.Add(edgeStatus);
+        browserBox.SetBounds(Px(120), Px(206), Px(145), Px(34));
+        browserBox.DropDownStyle = ComboBoxStyle.DropDownList;
+        browserBox.Items.AddRange(new object[] { "自動偵測", "Microsoft Edge", "Google Chrome" });
+        browserBox.SelectedIndex = 0;
+        browserBox.SelectedIndexChanged += (_, _) => UpdateBrowserStatus();
+        Controls.Add(browserBox);
+        browserStatus.SetBounds(Px(275), Px(210), Px(155), Px(30)); browserStatus.ForeColor = Color.White;
+        Controls.Add(browserStatus);
         Controls.Add(MakeLabel("狀態", 20, 250, 60, 30));
         status.SetBounds(Px(85), Px(250), Px(330), Px(30)); status.Text = "待命";
         Controls.Add(status);
@@ -148,7 +162,7 @@ internal sealed class MainForm : Form
         pauseButton.Click += (_, _) => TogglePause();
         stopButton.Click += (_, _) => StopRunner();
         Controls.AddRange(new Control[] { startButton, pauseButton, stopButton });
-        Controls.Add(MakeLabel("8.5～10.0 秒隨機間隔　　F8 開始　F9 暫停　F10 停止", 20, 635, 410, 25, 8.5F, false, Color.FromArgb(141, 150, 165), ContentAlignment.MiddleCenter));
+        Controls.Add(MakeLabel("F8 開始　│　F9 暫停　│　F10 停止", 20, 635, 410, 25, 9.8F, false, Color.FromArgb(170, 180, 195), ContentAlignment.MiddleCenter));
     }
 
     private static int Px(int value) => Math.Max(1, (int)Math.Round(value * UiScale));
@@ -170,7 +184,14 @@ internal sealed class MainForm : Form
     private async Task StartRunnerAsync()
     {
         if (runCts is not null) return;
-        if (GetEdgeWindow() == IntPtr.Zero) { status.Text = "找不到 Microsoft Edge"; countdownLabel.Text = "NO EDGE"; MessageBox.Show("請先開啟 Microsoft Edge。", "Search Runner", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+        var initialBrowser = GetBrowserTarget();
+        if (initialBrowser.Handle == IntPtr.Zero)
+        {
+            status.Text = "找不到目標瀏覽器";
+            countdownLabel.Text = "NO BROWSER";
+            MessageBox.Show($"請先開啟{GetRequestedBrowserText()}。", "Search Runner", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
 
         total = (int)countBox.Value;
         current = 0; paused = false; pauseButton.Text = "⏸ 暫停";
@@ -187,10 +208,10 @@ internal sealed class MainForm : Form
                 runCts.Token.ThrowIfCancellationRequested();
                 while (paused) await Task.Delay(100, runCts.Token);
 
-                var edge = GetEdgeWindow();
-                if (edge == IntPtr.Zero) throw new InvalidOperationException("Edge 已關閉");
-                Native.ActivateWindow(edge);
-                await WaitForForegroundAsync(edge, runCts.Token);
+                var browser = GetBrowserTarget();
+                if (browser.Handle == IntPtr.Zero) throw new InvalidOperationException($"{GetRequestedBrowserText()} 已關閉");
+                Native.ActivateWindow(browser.Handle);
+                await WaitForForegroundAsync(browser.Handle, browser.Name, runCts.Token);
                 await Task.Delay(150, runCts.Token);
 
                 current = i + 1;
@@ -242,7 +263,7 @@ internal sealed class MainForm : Form
 
     private void SetControlsRunning(bool running)
     {
-        startButton.Enabled = !running; countBox.Enabled = !running; sourceBox.Enabled = !running;
+        startButton.Enabled = !running; countBox.Enabled = !running; sourceBox.Enabled = !running; browserBox.Enabled = !running;
     }
 
     private void UpdateProgress()
@@ -251,20 +272,46 @@ internal sealed class MainForm : Form
         progress.Value = total > 0 ? Math.Max(0, Math.Min(100, (int)Math.Round(current * 100.0 / total))) : 0;
     }
 
-    private void UpdateEdgeStatus() => edgeStatus.Text = GetEdgeWindow() != IntPtr.Zero ? "● Edge 已開啟" : "● 找不到 Edge";
+    private void UpdateBrowserStatus()
+    {
+        var browser = GetBrowserTarget();
+        browserStatus.Text = browser.Handle != IntPtr.Zero ? $"● {browser.Name} 已開啟" : "● 找不到";
+    }
 
-    private static async Task WaitForForegroundAsync(IntPtr edge, CancellationToken token)
+    private static async Task WaitForForegroundAsync(IntPtr browser, string browserName, CancellationToken token)
     {
         for (var attempt = 0; attempt < 20; attempt++)
         {
-            if (Native.GetForegroundWindow() == edge) return;
-            Native.ActivateWindow(edge);
+            if (Native.GetForegroundWindow() == browser) return;
+            Native.ActivateWindow(browser);
             await Task.Delay(100, token);
         }
-        throw new InvalidOperationException("Edge 無法取得焦點");
+        throw new InvalidOperationException($"{browserName} 無法取得焦點");
     }
 
-    private static IntPtr GetEdgeWindow() => Process.GetProcessesByName("msedge").Select(p => p.MainWindowHandle).FirstOrDefault(h => h != IntPtr.Zero);
+    private BrowserTarget GetBrowserTarget()
+    {
+        if (browserBox.SelectedIndex == 1) return new BrowserTarget(GetBrowserWindow("msedge"), "Edge");
+        if (browserBox.SelectedIndex == 2) return new BrowserTarget(GetBrowserWindow("chrome"), "Chrome");
+
+        var foreground = Native.GetForegroundWindow();
+        var edge = GetBrowserWindow("msedge");
+        var chrome = GetBrowserWindow("chrome");
+        if (foreground != IntPtr.Zero && foreground == chrome) return new BrowserTarget(chrome, "Chrome");
+        if (foreground != IntPtr.Zero && foreground == edge) return new BrowserTarget(edge, "Edge");
+        if (edge != IntPtr.Zero) return new BrowserTarget(edge, "Edge");
+        return new BrowserTarget(chrome, chrome != IntPtr.Zero ? "Chrome" : "瀏覽器");
+    }
+
+    private string GetRequestedBrowserText() => browserBox.SelectedIndex switch
+    {
+        1 => " Microsoft Edge",
+        2 => " Google Chrome",
+        _ => " Microsoft Edge 或 Google Chrome"
+    };
+
+    private static IntPtr GetBrowserWindow(string processName) =>
+        Process.GetProcessesByName(processName).Select(p => p.MainWindowHandle).FirstOrDefault(h => h != IntPtr.Zero);
 
     private async Task<List<string>> BuildKeywordPoolAsync(string mode, CancellationToken token)
     {
