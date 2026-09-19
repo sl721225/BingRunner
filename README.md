@@ -1,12 +1,12 @@
 # BingRunner
 
-簡單的 Windows Edge 關鍵字搜尋工具。
+簡單的 C# Windows Edge 關鍵字搜尋工具。
 
 ## 最新版本
 
-`v2.0.4` 已改寫為 C# Windows Forms，不再包含 AutoHotkey 編譯器。程式可在 Windows 11 直接執行，並已使用 Microsoft Defender 掃描，未發現威脅。
+`v2.0.4` 使用 C# Windows Forms 製作，可在 Windows 11 直接執行，並已使用 Microsoft Defender 掃描，未發現威脅。
 
-此版本也修正視窗置頂、Edge 自動切換、64 位元鍵盤輸入，以及高 DPI 顯示下視窗過大的問題。
+此版本已修正視窗置頂、Edge 自動切換、64 位元鍵盤輸入，以及高 DPI 顯示下視窗過大的問題。
 
 ## 功能
 
@@ -28,7 +28,3 @@
 5. 選擇搜尋次數與詞庫來源，再按「開始」。
 
 使用「自訂 TXT」或「混合」時，可將 `keywords.txt` 放在 EXE 同一資料夾；每行填寫一個關鍵字。
-
-## 原始碼
-
-目前版本使用 C# Windows Forms。舊版 `BingRunner.ahk` 僅供版本參考。
