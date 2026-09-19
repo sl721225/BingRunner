@@ -1,6 +1,10 @@
 # BingRunner
 
-簡單的 AutoHotkey v2 Edge 關鍵字搜尋工具。
+簡單的 Windows Edge 關鍵字搜尋工具。
+
+## 最新版本
+
+`v2.0.0` 已改寫為 C# Windows Forms，不再包含 AutoHotkey 編譯器。程式可在 Windows 11 直接執行，並已使用 Microsoft Defender 掃描，未發現威脅。
 
 ## 功能
 
@@ -15,13 +19,14 @@
 
 ## 使用方式
 
-1. 下載 `BingRunner.exe`。
-2. 開啟 Microsoft Edge。
-3. 執行 `BingRunner.exe`。
-4. 選擇搜尋次數與詞庫來源，再按「開始」。
+1. 從 Releases 下載 `BingRunner-v2.0.0-win-x64.zip`。
+2. 解壓縮。
+3. 開啟 Microsoft Edge。
+4. 執行 `BingRunner.exe`。
+5. 選擇搜尋次數與詞庫來源，再按「開始」。
 
 使用「自訂 TXT」或「混合」時，可將 `keywords.txt` 放在 EXE 同一資料夾；每行填寫一個關鍵字。
 
 ## 原始碼
 
-`BingRunner.ahk` 使用 AutoHotkey v2。
+目前版本使用 C# Windows Forms。舊版 `BingRunner.ahk` 僅供版本參考。
