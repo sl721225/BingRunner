@@ -4,7 +4,7 @@
 
 ## 最新版本
 
-`v2.0.4` 使用 C# Windows Forms 製作，可在 Windows 11 直接執行，並已使用 Microsoft Defender 掃描，未發現威脅。
+`v2.0.5` 使用 C# Windows Forms 製作，可在 Windows 11 直接執行，並已使用 Microsoft Defender 掃描，未發現威脅。
 
 此版本已修正視窗置頂、Edge 自動切換、64 位元鍵盤輸入，以及高 DPI 顯示下視窗過大的問題。
 
@@ -21,7 +21,7 @@
 
 ## 使用方式
 
-1. 從 Releases 下載 `BingRunner-v2.0.4-win-x64.zip`。
+1. 從 Releases 下載 `BingRunner-v2.0.5-win-x64.zip`。
 2. 解壓縮。
 3. 開啟 Microsoft Edge。
 4. 執行 `BingRunner.exe`。
