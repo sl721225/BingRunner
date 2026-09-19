@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -30,6 +31,7 @@ internal sealed class MainForm : Form
     private const int DefaultCount = 22;
     private const int MinDelayMs = 8500;
     private const int MaxDelayMs = 10000;
+    private const float UiScale = 0.72F;
 
     private readonly NumericUpDown countBox = new();
     private readonly ComboBox sourceBox = new();
@@ -78,9 +80,11 @@ internal sealed class MainForm : Form
     public MainForm()
     {
         Text = "Search Runner";
-        ClientSize = new Size(450, 670);
+        AutoScaleMode = AutoScaleMode.None;
+        ClientSize = new Size(Px(450), Px(670));
         FormBorderStyle = FormBorderStyle.FixedSingle;
         MaximizeBox = false;
+        TopMost = true;
         BackColor = Color.FromArgb(31, 36, 44);
         ForeColor = Color.White;
         Font = new Font("Segoe UI", 10F);
@@ -96,19 +100,19 @@ internal sealed class MainForm : Form
 
     private void BuildUi()
     {
-        Controls.Add(MakeLabel("🔎 Search Runner", 20, 15, 400, 34, 18F, true));
+        Controls.Add(MakeLabel("🔎 Search Runner", 20, 15, 400, 34, 16F, true));
         Controls.Add(MakeLabel("Edge Search Automation", 20, 50, 400, 25, 9F, false, Color.LightSteelBlue));
-        Controls.Add(new Panel { Left = 20, Top = 87, Width = 410, Height = 1, BackColor = Color.FromArgb(65, 72, 83) });
+        Controls.Add(new Panel { Left = Px(20), Top = Px(87), Width = Px(410), Height = 1, BackColor = Color.FromArgb(65, 72, 83) });
 
         Controls.Add(MakeLabel("執行次數", 20, 110, 90, 30));
-        countBox.SetBounds(120, 106, 105, 34);
+        countBox.SetBounds(Px(120), Px(106), Px(105), Px(34));
         countBox.Minimum = 1; countBox.Maximum = 999; countBox.Value = DefaultCount;
         countBox.TextAlign = HorizontalAlignment.Center;
         countBox.BackColor = Color.White; countBox.ForeColor = Color.Black;
         Controls.Add(countBox);
 
         Controls.Add(MakeLabel("詞庫來源", 20, 157, 90, 30));
-        sourceBox.SetBounds(120, 153, 200, 34);
+        sourceBox.SetBounds(Px(120), Px(153), Px(200), Px(34));
         sourceBox.DropDownStyle = ComboBoxStyle.DropDownList;
         sourceBox.Items.AddRange(new object[] { "混合", "線上熱門詞", "自訂 TXT" });
         sourceBox.SelectedIndex = 0;
@@ -118,23 +122,23 @@ internal sealed class MainForm : Form
         Controls.Add(openButton);
 
         Controls.Add(MakeLabel("目標瀏覽器", 20, 210, 100, 30));
-        edgeStatus.SetBounds(125, 210, 280, 30); edgeStatus.ForeColor = Color.White;
+        edgeStatus.SetBounds(Px(125), Px(210), Px(280), Px(30)); edgeStatus.ForeColor = Color.White;
         Controls.Add(edgeStatus);
         Controls.Add(MakeLabel("狀態", 20, 250, 60, 30));
-        status.SetBounds(85, 250, 330, 30); status.Text = "待命";
+        status.SetBounds(Px(85), Px(250), Px(330), Px(30)); status.Text = "待命";
         Controls.Add(status);
 
         Controls.Add(MakeLabel("進度", 20, 300, 60, 30));
-        progressLabel.SetBounds(85, 300, 120, 30); progressLabel.Text = $"0 / {DefaultCount}";
+        progressLabel.SetBounds(Px(85), Px(300), Px(120), Px(30)); progressLabel.Text = $"0 / {DefaultCount}";
         Controls.Add(progressLabel);
-        progress.SetBounds(20, 335, 410, 18); progress.Maximum = 100;
+        progress.SetBounds(Px(20), Px(335), Px(410), Px(18)); progress.Maximum = 100;
         Controls.Add(progress);
 
         Controls.Add(MakeLabel("目前關鍵字", 20, 385, 410, 25, 9F, false, Color.LightSteelBlue, ContentAlignment.MiddleCenter));
-        keywordLabel.SetBounds(20, 415, 410, 40); keywordLabel.Text = "--"; keywordLabel.Font = new Font("Segoe UI", 17F, FontStyle.Bold); keywordLabel.TextAlign = ContentAlignment.MiddleCenter;
+        keywordLabel.SetBounds(Px(20), Px(415), Px(410), Px(40)); keywordLabel.Text = "--"; keywordLabel.Font = new Font("Segoe UI", 12.5F, FontStyle.Bold); keywordLabel.TextAlign = ContentAlignment.MiddleCenter;
         Controls.Add(keywordLabel);
         Controls.Add(MakeLabel("下一次搜尋", 20, 475, 410, 25, 9F, false, Color.LightSteelBlue, ContentAlignment.MiddleCenter));
-        countdownLabel.SetBounds(20, 505, 410, 55); countdownLabel.Text = "--"; countdownLabel.Font = new Font("Segoe UI", 24F, FontStyle.Bold); countdownLabel.TextAlign = ContentAlignment.MiddleCenter;
+        countdownLabel.SetBounds(Px(20), Px(505), Px(410), Px(55)); countdownLabel.Text = "--"; countdownLabel.Font = new Font("Segoe UI", 18F, FontStyle.Bold); countdownLabel.TextAlign = ContentAlignment.MiddleCenter;
         Controls.Add(countdownLabel);
 
         startButton = MakeButton("▶ 開始", 20, 580, 125, 42);
@@ -147,11 +151,13 @@ internal sealed class MainForm : Form
         Controls.Add(MakeLabel("8.5～10.0 秒隨機間隔　　F8 開始　F9 暫停　F10 停止", 20, 635, 410, 25, 8.5F, false, Color.FromArgb(141, 150, 165), ContentAlignment.MiddleCenter));
     }
 
+    private static int Px(int value) => Math.Max(1, (int)Math.Round(value * UiScale));
+
     private static Label MakeLabel(string text, int x, int y, int w, int h, float size = 10F, bool bold = false, Color? color = null, ContentAlignment align = ContentAlignment.MiddleLeft) =>
-        new() { Text = text, Left = x, Top = y, Width = w, Height = h, Font = new Font("Segoe UI", size, bold ? FontStyle.Bold : FontStyle.Regular), ForeColor = color ?? Color.White, TextAlign = align };
+        new() { Text = text, Left = Px(x), Top = Px(y), Width = Px(w), Height = Px(h), Font = new Font("Segoe UI", size * 0.9F, bold ? FontStyle.Bold : FontStyle.Regular), ForeColor = color ?? Color.White, TextAlign = align };
 
     private static Button MakeButton(string text, int x, int y, int w, int h) =>
-        new() { Text = text, Left = x, Top = y, Width = w, Height = h, BackColor = Color.White, ForeColor = Color.Black, FlatStyle = FlatStyle.Standard };
+        new() { Text = text, Left = Px(x), Top = Px(y), Width = Px(w), Height = Px(h), BackColor = Color.White, ForeColor = Color.Black, FlatStyle = FlatStyle.Standard };
 
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
     {
@@ -183,8 +189,9 @@ internal sealed class MainForm : Form
 
                 var edge = GetEdgeWindow();
                 if (edge == IntPtr.Zero) throw new InvalidOperationException("Edge 已關閉");
-                Native.SetForegroundWindow(edge);
-                await Task.Delay(350, runCts.Token);
+                Native.ActivateWindow(edge);
+                await WaitForForegroundAsync(edge, runCts.Token);
+                await Task.Delay(150, runCts.Token);
 
                 current = i + 1;
                 keywordLabel.Text = queue[i]; status.Text = $"搜尋第 {current} 次"; countdownLabel.Text = "搜尋中"; UpdateProgress();
@@ -245,6 +252,17 @@ internal sealed class MainForm : Form
     }
 
     private void UpdateEdgeStatus() => edgeStatus.Text = GetEdgeWindow() != IntPtr.Zero ? "● Edge 已開啟" : "● 找不到 Edge";
+
+    private static async Task WaitForForegroundAsync(IntPtr edge, CancellationToken token)
+    {
+        for (var attempt = 0; attempt < 20; attempt++)
+        {
+            if (Native.GetForegroundWindow() == edge) return;
+            Native.ActivateWindow(edge);
+            await Task.Delay(100, token);
+        }
+        throw new InvalidOperationException("Edge 無法取得焦點");
+    }
 
     private static IntPtr GetEdgeWindow() => Process.GetProcessesByName("msedge").Select(p => p.MainWindowHandle).FirstOrDefault(h => h != IntPtr.Zero);
 
@@ -332,8 +350,45 @@ internal static class Native
     private const ushort VkL = 0x4C;
     private const ushort VkEnter = 0x0D;
 
+    private const int SwRestore = 9;
+
     [DllImport("user32.dll")] internal static extern bool SetForegroundWindow(IntPtr hWnd);
+    [DllImport("user32.dll")] internal static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] private static extern bool BringWindowToTop(IntPtr hWnd);
+    [DllImport("user32.dll")] private static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+    [DllImport("user32.dll")] private static extern bool IsIconic(IntPtr hWnd);
+    [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hWnd, IntPtr processId);
+    [DllImport("kernel32.dll")] private static extern uint GetCurrentThreadId();
+    [DllImport("user32.dll")] private static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool attach);
     [DllImport("user32.dll", SetLastError = true)] private static extern uint SendInput(uint nInputs, INPUT[] inputs, int cbSize);
+
+    internal static void ActivateWindow(IntPtr window)
+    {
+        if (IsIconic(window)) ShowWindowAsync(window, SwRestore);
+
+        var foreground = GetForegroundWindow();
+        var foregroundThread = foreground == IntPtr.Zero ? 0 : GetWindowThreadProcessId(foreground, IntPtr.Zero);
+        var targetThread = GetWindowThreadProcessId(window, IntPtr.Zero);
+        var currentThread = GetCurrentThreadId();
+
+        try
+        {
+            if (foregroundThread != 0 && foregroundThread != currentThread)
+                AttachThreadInput(currentThread, foregroundThread, true);
+            if (targetThread != 0 && targetThread != currentThread)
+                AttachThreadInput(currentThread, targetThread, true);
+
+            BringWindowToTop(window);
+            SetForegroundWindow(window);
+        }
+        finally
+        {
+            if (targetThread != 0 && targetThread != currentThread)
+                AttachThreadInput(currentThread, targetThread, false);
+            if (foregroundThread != 0 && foregroundThread != currentThread)
+                AttachThreadInput(currentThread, foregroundThread, false);
+        }
+    }
 
     internal static void PressCtrlL() => SendKeys(new[] { Key(VkControl), Key(VkL), Key(VkL, KeyUp), Key(VkControl, KeyUp) });
     internal static void PressEnter() => SendKeys(new[] { Key(VkEnter), Key(VkEnter, KeyUp) });
@@ -345,10 +400,14 @@ internal static class Native
         SendKeys(inputs.ToArray());
     }
 
-    private static void SendKeys(INPUT[] inputs) => SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
+    private static void SendKeys(INPUT[] inputs)
+    {
+        var sent = SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
+        if (sent != inputs.Length) throw new Win32Exception(Marshal.GetLastWin32Error(), "無法傳送鍵盤輸入");
+    }
     private static INPUT Key(ushort code, uint flags = 0) => new() { type = InputKeyboard, U = new INPUTUNION { ki = new KEYBDINPUT { wVk = (flags & Unicode) != 0 ? (ushort)0 : code, wScan = (flags & Unicode) != 0 ? code : (ushort)0, dwFlags = flags } } };
 
     [StructLayout(LayoutKind.Sequential)] private struct INPUT { public uint type; public INPUTUNION U; }
-    [StructLayout(LayoutKind.Explicit)] private struct INPUTUNION { [FieldOffset(0)] public KEYBDINPUT ki; }
+    [StructLayout(LayoutKind.Explicit, Size = 32)] private struct INPUTUNION { [FieldOffset(0)] public KEYBDINPUT ki; }
     [StructLayout(LayoutKind.Sequential)] private struct KEYBDINPUT { public ushort wVk; public ushort wScan; public uint dwFlags; public uint time; public IntPtr dwExtraInfo; }
 }
